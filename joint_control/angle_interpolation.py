@@ -33,7 +33,6 @@ class AngleInterpolationAgent(PIDAgent):
                  sync_mode=True):
         super(AngleInterpolationAgent, self).__init__(simspark_ip, simspark_port, teamname, player_id, sync_mode)
         self.keyframes = ([], [], [])
-        self.motion_is_complete = False
 
 
     def think(self, perception):
@@ -57,13 +56,7 @@ class AngleInterpolationAgent(PIDAgent):
         elapsed_time = now_time - self.motion_start_time
 
 
-        max_duration = 0.0
-        for joint_times in times:
-            if joint_times:
-                max_duration = max(max_duration, joint_times[-1])
-    
-        self.motion_is_complete = (elapsed_time >= max_duration)
-        
+       
         # print(f"Absolute time: {now_time:.2f}, Elapsed motion time: {elapsed_time:.2f}")  # Debug
         
         def cubic_bezier(t, p0, p1, p2, p3):
@@ -90,7 +83,8 @@ class AngleInterpolationAgent(PIDAgent):
                 target_joints[joint_name] = joint_keys[0][0]
             elif elapsed_time >= joint_times[-1]:
                 # After last keyframe - loop or hold last position
-                target_joints[joint_name] = joint_keys[-1][0]  # Hold last position
+                target_joints[joint_name] = joint_keys[-1][0]
+                # return  # Hold last position
                 # Or to loop: self.motion_start_time = now_time (uncomment to loop)
 
                 # self.motion_start_time = now_time  # Reset start time to loop

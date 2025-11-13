@@ -1,7 +1,6 @@
 
 
-def wipe_forehead(motion):
-    # Choregraphe bezier export in Python.
+def wipe_forehead():
     names = list()
     times = list()
     keys = list()

@@ -35,9 +35,9 @@ class PIDController(object):
         self.e2 = np.zeros(size)
         # ADJUST PARAMETERS BELOW
         delay = 0
-        self.Kp = 0
-        self.Ki = 0
-        self.Kd = 0
+        self.Kp = 19
+        self.Ki = 0.40
+        self.Kd = 0.0
         self.y = deque(np.zeros(size), maxlen=delay + 1)
 
     def set_delay(self, delay):
@@ -54,6 +54,35 @@ class PIDController(object):
         '''
         # YOUR CODE HERE
 
+        # 1. the motor in simulation can simple modelled by angle(t) = angle(t-1) + speed * dt
+
+        self.y.append(sensor)
+
+        y_pred = self.y[-1]
+
+        y_pred_at_t = y_pred + self.u * (len(self.y) - 1) * self.dt
+
+        
+        #calculate p term 
+        e = target - y_pred
+        p_term = self.Kp * e
+        
+        # calculate i term
+        self.e1 += e * self.dt
+        i_term = self.Ki * self.e1
+
+        # calculate d term
+        d_term = self.Kd * (e - self.e2) / self.dt
+
+        self.u = p_term + i_term + d_term
+
+        # reset error and y value
+        self.e2 = e
+        # new_y_pred = self.y[-1] + self.u * self.dt
+        # self.y.append(new_y_pred)
+
+
+        # self.u = (target - 1) + (self.Kp + (self.Ki*self.dt) + (self.Kd/self.dt)*self.e2) - (self.Kp + (2*self.Kd/self.dt)*self.e1) + ((self.Kd/self.dt)*self.e2)
         return self.u
 
 

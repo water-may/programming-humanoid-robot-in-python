@@ -17,8 +17,9 @@ class StandingUpAgent(PostureRecognitionAgent):
                  player_id=0,
                  sync_mode=True):
         super(StandingUpAgent, self).__init__(simspark_ip, simspark_port, teamname, player_id, sync_mode)
+        self.standing_up_motion = False
         self.initial_posture = None
-        self.standing_up_motion = None
+        self.initial_phase_complete = False
 
     def think(self, perception):
         self.standing_up()
@@ -27,53 +28,53 @@ class StandingUpAgent(PostureRecognitionAgent):
     
     def standing_up(self):
         posture = self.posture
-        # YOUR CODE HERE
+
+
+
+        #TODO
+
+        # step one, if the robot is BACK or BELLY, set the standing up flag to true and start standing up;
+        # set initial posture to one of the above
+        # if the standing_up is not complete but it is Back or Belly restart the motion 
+        # when the posture is stand then stop
+
+        # if the robot has fallen down after starting up then start over again 
+        if posture == "Back" or posture == "Belly":
+            if self.standing_up_motion == True and self.initial_phase_complete:
+                print("Robot has fallen, resettting motion!")
+                self.reset_motion_timing()
+                self.standing_up_motion = False
+                self.initial_phase_complete = False
+
+
+        if posture != self.initial_posture:
+            self.initial_phase_complete = True
+
+
+        # case where robot has stood up 
+        if posture == "Stand" and self.standing_up_motion:
+            self.standing_up_motion = False
+            self.initial_posture = None
+            return 
         
-        self.last_posture = posture
-        if  posture == "Back" or posture == "Belly":
+        # if the robot is idle and laying down then start the motion 
+        if not self.standing_up_motion and (posture == "Back" or posture == "Belly"):
             self.initial_posture = posture
-        
-
-        perception_to_action_back = {
-            # "Belly": rightBackToStand,
-            "Back": rightBackToStand,
-            "Crouch": rightBackToStand,
-            "HeadBack": rightBackToStand,
-            "Left": rightBackToStand,
-            "Right": rightBackToStand,
-            "Sit": rightBackToStand,
-            "Knee": rightBackToStand, 
-            "Frog": rightBackToStand,
-            "StandInit": rightBackToStand,
-            "Stand": wipe_forehead,
-
-        }
-
-
-        perception_to_action_belly = {
-            "Belly": leftBellyToStand,
-            "Crouch": leftBellyToStand,
-            "HeadBack": leftBellyToStand,
-            "Left": leftBellyToStand,
-            "Right": leftBellyToStand,
-            "Sit": leftBellyToStand,
-            "Knee": leftBellyToStand, 
-            "Frog": leftBellyToStand,
-            "StandInit": leftBellyToStand,
-            "Stand": wipe_forehead,
-        }
-        
-
-        keyframe_func = perception_to_action_back.get(posture)
-
-        if self.initial_posture == "Belly":
-            keyframe_func = perception_to_action_belly.get(posture)
-
-        
-        if keyframe_func is not None:
-            print(f"Posture: {posture}, Executing keyframe motion", keyframe_func.__name__)
-            self.keyframes = keyframe_func()
+            self.standing_up_motion = True
             
+
+
+
+        if self.standing_up_motion:
+            if self.initial_posture == "Back":
+                self.keyframes = rightBackToStand()
+            elif self.initial_posture == "Belly":
+                self.keyframes = leftBellyToStand()
+
+
+        print("Init Posture: ", self.initial_posture)
+        # print("keyframe: ", self.keyframes )
+        
             
 
 

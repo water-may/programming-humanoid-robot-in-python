@@ -36,29 +36,60 @@ class AngleInterpolationAgent(PIDAgent):
 
 
     def think(self, perception):
+
+        
         target_joints = self.angle_interpolation(self.keyframes, perception)
     
-        if "LHipYawPitch" in target_joints.keys():
+        if target_joints and "LHipYawPitch" in target_joints.keys():
+            print("KEY available")
             target_joints['RHipYawPitch'] = target_joints["LHipYawPitch"] # copy missing joint in keyframes
-        self.target_joints.update(target_joints)
+            self.target_joints.update(target_joints)
         return super(AngleInterpolationAgent, self).think(perception)
+
+
+    def reset_motion_timing(self):
+        """Call this to reset/stop the current motion and start fresh"""
+        self.reset_motion = True
+        self.motion_finished = False
+
 
     def angle_interpolation(self, keyframes, perception):
         target_joints = {}
         names, times, keys = keyframes
         now_time = perception.time
         
-        # If this is the first call, set a start time offset
-        if not hasattr(self, 'motion_start_time'):
+        # Check if we should reset/stop the current motion
+        if hasattr(self, 'reset_motion') and self.reset_motion:
+            self.current_keyframes = keyframes
             self.motion_start_time = now_time
+            self.motion_finished = False
+            self.reset_motion = False  # Reset the flag
+    
+        # Reset motion start time when keyframes change
+        if not hasattr(self, 'current_keyframes') or self.current_keyframes != keyframes:
+            self.current_keyframes = keyframes
+            self.motion_start_time = now_time
+            self.motion_finished = False
         
         # Calculate time relative to when the motion started
         elapsed_time = now_time - self.motion_start_time
 
 
-       
-        # print(f"Absolute time: {now_time:.2f}, Elapsed motion time: {elapsed_time:.2f}")  # Debug
+         # Check if all motions are finished
+        max_motion_time = 0
+        for joint_times in times:
+            if joint_times and joint_times[-1] > max_motion_time:
+                max_motion_time = joint_times[-1]
         
+        if elapsed_time >= max_motion_time:
+            self.motion_finished = True
+            # Hold the final position
+            for joint_index, joint_name in enumerate(names):
+                if keys[joint_index]:
+                    target_joints[joint_name] = keys[joint_index][-1][0]
+            return target_joints
+        
+
         def cubic_bezier(t, p0, p1, p2, p3):
             """Cubic Bezier interpolation"""
             u = 1 - t
@@ -74,8 +105,6 @@ class AngleInterpolationAgent(PIDAgent):
             
             if len(joint_times) == 0:
                 continue
-                
-            
 
             # Use elapsed_time instead of absolute time
             if elapsed_time < joint_times[0]:
@@ -84,11 +113,7 @@ class AngleInterpolationAgent(PIDAgent):
             elif elapsed_time >= joint_times[-1]:
                 # After last keyframe - loop or hold last position
                 target_joints[joint_name] = joint_keys[-1][0]
-                # return  # Hold last position
-                # Or to loop: self.motion_start_time = now_time (uncomment to loop)
-
-                # self.motion_start_time = now_time  # Reset start time to loop
-                # target_joints[joint_name] = joint_keys[0][0]  # Use first frame
+                continue  
             else:
                 # Find which segment we're in
                 for i in range(len(joint_times) - 1):
@@ -115,22 +140,14 @@ class AngleInterpolationAgent(PIDAgent):
                         P2 = angle1 + in_handle[2]
                         
 
-                       
-                        
-                        # Linear interpolation
-                        # target_angle = angle0 + (angle1 - angle0) * t_norm
-
                         target_angle = cubic_bezier(t_norm, P0, P1, P2, P3)
                         target_joints[joint_name] = target_angle
                         
-                        # Debug
-                        # if joint_name == "HeadPitch":
-                        #     print(f"HeadPitch: time {elapsed_time:.2f} in segment {i} ({t0:.2f}-{t1:.2f}), angle: {target_angle:.3f}")
                         break
         
         return target_joints
     
 if __name__ == '__main__':
     agent = AngleInterpolationAgent()
-    agent.keyframes = keyframes.rightBackToStand()
+    agent.keyframes = keyframes.rightBellyToStand()
     agent.run()

@@ -15,7 +15,7 @@ from keyframes import hello, leftBackToStand
 import pickle
 import numpy as np
 
-ROBOT_POSE_CLF = 'robot_pose.pkl'
+ROBOT_POSE_CLF ='robot_pose.pkl'
 FEATURE_NAMES = ['LHipYawPitch', 'LHipRoll', 'LHipPitch', 'LKneePitch',
                  'RHipYawPitch', 'RHipRoll', 'RHipPitch', 'RKneePitch',
                  'AngleX', 'AngleY']
